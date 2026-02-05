@@ -3,6 +3,10 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
+from .logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class SupabaseConfigError(Exception):
     """Raised when Supabase configuration is missing or invalid."""
@@ -21,4 +25,5 @@ def get_supabase_client() -> Client:
     if not key:
         raise SupabaseConfigError("SUPABASE_ANON_KEY environment variable is not set")
 
+    logger.debug(f"Connecting to Supabase: {url}")
     return create_client(url, key)

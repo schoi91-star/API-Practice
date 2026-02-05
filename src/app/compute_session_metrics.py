@@ -4,7 +4,10 @@ from datetime import datetime
 from supabase import Client
 
 from .datetime_utils import parse_iso_datetime, utc_now
+from .logger import get_logger
 from .types import SessionRawRow, SessionMetricsRow
+
+logger = get_logger(__name__)
 
 
 class SupabaseQueryError(Exception):
@@ -97,22 +100,23 @@ def upsert_session_metrics(client: Client, metrics: list[SessionMetricsRow]) -> 
         raise SupabaseQueryError("Failed to upsert session_metrics data")
 
 
-def run_session_metrics_pipeline(client: Client, debug: bool = False) -> int:
+def run_session_metrics_pipeline(client: Client) -> int:
     """
     Main entry function: fetch sessions, compute metrics, upsert results.
     Returns the number of employees processed.
     """
+    logger.info("Starting session metrics pipeline")
+
     sessions = fetch_all_sessions(client)
-    if debug:
-        print(f"[DEBUG] Fetched {len(sessions)} sessions")
-        if sessions:
-            print(f"[DEBUG] First row: {sessions[0]}")
+    logger.info(f"Fetched {len(sessions)} sessions")
+    if sessions:
+        logger.debug(f"First row sample: {sessions[0]}")
 
     now_utc = utc_now()
     metrics = compute_metrics_for_employees(sessions, now_utc)
-    if debug:
-        print(f"[DEBUG] Computed metrics for {len(metrics)} employees")
+    logger.info(f"Computed metrics for {len(metrics)} employees")
 
     upsert_session_metrics(client, metrics)
+    logger.info("Successfully upserted metrics to database")
 
     return len(metrics)
