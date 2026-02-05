@@ -1,29 +1,45 @@
-import os
+"""
+Supabase client factory module.
 
-from dotenv import load_dotenv
+Provides a function to create authenticated Supabase client instances
+using configuration from environment variables.
+
+Usage:
+    from app.supabase_client import get_supabase_client
+
+    client = get_supabase_client()
+    response = client.table("my_table").select("*").execute()
+"""
 from supabase import create_client, Client
 
+from .config import get_settings, ConfigurationError
 from .logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class SupabaseConfigError(Exception):
-    """Raised when Supabase configuration is missing or invalid."""
-    pass
+# Re-export ConfigurationError for backwards compatibility
+# Allows: from app.supabase_client import SupabaseConfigError
+SupabaseConfigError = ConfigurationError
 
 
 def get_supabase_client() -> Client:
-    """Create and return a Supabase client using environment variables."""
-    load_dotenv()
+    """
+    Create and return a Supabase client using environment variables.
 
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_ANON_KEY")
+    Uses the centralized Settings class for configuration management,
+    which provides:
+    - Automatic .env file loading
+    - Type validation
+    - Clear error messages for missing config
 
-    if not url:
-        raise SupabaseConfigError("SUPABASE_URL environment variable is not set")
-    if not key:
-        raise SupabaseConfigError("SUPABASE_ANON_KEY environment variable is not set")
+    Returns:
+        Authenticated Supabase Client instance
 
-    logger.debug(f"Connecting to Supabase: {url}")
-    return create_client(url, key)
+    Raises:
+        ConfigurationError: If SUPABASE_URL or SUPABASE_ANON_KEY is not set
+    """
+    settings = get_settings()
+
+    logger.debug(f"Connecting to Supabase: {settings.supabase_url}")
+    return create_client(settings.supabase_url, settings.supabase_anon_key)
